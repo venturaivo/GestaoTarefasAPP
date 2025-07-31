@@ -4,6 +4,7 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+require('dotenv').config(); // <-- Importa variáveis do .env
 
 const app = express();
 app.use(cors());
@@ -11,13 +12,13 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-secreto-123';
 
-// Configuração da ligação MySQL
+// Configuração da ligação MySQL usando variáveis de ambiente
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Salgueira#1984ivos',
-  database: 'tarefasapp',
-  port: 3306
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQL_PORT
 });
 
 // Middleware de autenticação JWT simples
@@ -173,7 +174,7 @@ app.post('/api/atividades', autenticarToken, async (req, res) => {
 
 // Adicionar nova nota a uma tarefa
 app.post('/api/notas', autenticarToken, async (req, res) => {
-  console.log('POST /api/notas BODY:', req.body); // <-- DEBUG AQUI!
+  console.log('POST /api/notas BODY:', req.body); // <-- DEBUG
   const { tarefa_id, texto, data, hora } = req.body;
   try {
     const [result] = await pool.query(
@@ -182,7 +183,7 @@ app.post('/api/notas', autenticarToken, async (req, res) => {
     );
     res.status(201).json({ id: result.insertId, tarefa_id, texto, data, hora });
   } catch (err) {
-    console.error('ERRO ao gravar nota:', err); // DEBUG se falhar!
+    console.error('ERRO ao gravar nota:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -207,7 +208,7 @@ app.get('/', (req, res) => {
 });
 
 // Arrancar servidor
-const PORT = 8080;
+const PORT = process.env.PORT || 8080; // Permite PORT do ambiente (ex: Render)
 app.listen(PORT, () => {
   console.log(`API a correr em http://localhost:${PORT}`);
 });
