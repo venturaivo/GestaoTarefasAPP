@@ -1,13 +1,14 @@
 // server.js
+require('dotenv').config(); // <-- Carrega variáveis do .env sempre no topo
+
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-require('dotenv').config(); // <-- Importa variáveis do .env
 
 const app = express();
-app.use(cors());
+app.use(cors()); // Em produção, considera: cors({ origin: "https://tarefas.v3dsi.com" })
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-secreto-123';
@@ -18,7 +19,7 @@ const pool = mysql.createPool({
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
-  port: process.env.MYSQL_PORT
+  port: process.env.MYSQL_PORT || 3306,
 });
 
 // Middleware de autenticação JWT simples
@@ -174,7 +175,6 @@ app.post('/api/atividades', autenticarToken, async (req, res) => {
 
 // Adicionar nova nota a uma tarefa
 app.post('/api/notas', autenticarToken, async (req, res) => {
-  console.log('POST /api/notas BODY:', req.body); // <-- DEBUG
   const { tarefa_id, texto, data, hora } = req.body;
   try {
     const [result] = await pool.query(
@@ -183,7 +183,6 @@ app.post('/api/notas', autenticarToken, async (req, res) => {
     );
     res.status(201).json({ id: result.insertId, tarefa_id, texto, data, hora });
   } catch (err) {
-    console.error('ERRO ao gravar nota:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -207,8 +206,9 @@ app.get('/', (req, res) => {
   res.send('API TarefasApp online! 😎');
 });
 
-// Arrancar servidor
-const PORT = process.env.PORT || 8080; // Permite PORT do ambiente (ex: Render)
-app.listen(PORT, () => {
-  console.log(`API a correr em http://localhost:${PORT}`);
+// Arrancar servidor com host 0.0.0.0 para aceitar ligações externas (Render, Railway, etc)
+const PORT = process.env.PORT || 8080;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`API a correr em http://${HOST}:${PORT}`);
 });
