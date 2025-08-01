@@ -1,14 +1,16 @@
+require('dotenv').config(); // Garante que carrega as variáveis do .env
+
 const nodemailer = require('nodemailer');
 const mysql = require('mysql2/promise');
-const cron = require('node-cron'); // <-- Adiciona o cron!
+const cron = require('node-cron');
 
-// LIGAÇÃO AO MYSQL - AJUSTA SE NECESSÁRIO
+// LIGAÇÃO AO MYSQL usando variáveis do .env
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Salgueira#1984ivos',
-  database: 'tarefasapp',
-  port: 3306
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQL_PORT || 3306,
 });
 
 // BUSCA TAREFAS ATIVAS
@@ -22,8 +24,8 @@ async function enviarEmail(tarefas) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'dev.v3dsi@gmail.com',        // <-- o teu email gmail (remetente)
-      pass: 'gkdq rxiw oyya kcuj'         // <-- password de app do gmail
+      user: process.env.EMAIL_USER, // do .env
+      pass: process.env.EMAIL_PASS  // do .env
     }
   });
 
@@ -58,7 +60,7 @@ async function enviarEmail(tarefas) {
   html += `
       </tbody>
     </table>
-    <a href="http://localhost:3000" target="_blank" 
+    <a href="${process.env.APP_URL}" target="_blank"
       style="display:inline-block;padding:12px 32px;background:#2b6be3;color:#fff;border-radius:8px;font-weight:bold;
       text-decoration:none;font-family:Montserrat,sans-serif;letter-spacing:.03em;margin-top:10px;">
       Abrir aplicação
@@ -69,8 +71,8 @@ async function enviarEmail(tarefas) {
 
   // ENVIA EMAIL
   await transporter.sendMail({
-    from: '"TarefasApp" <dev.v3dsi@gmail.com>', // Corrigido o from
-    to: 'ivo.ventura@gmail.com',
+    from: `"TarefasApp" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_TO,
     subject: 'Tarefas Ativas - Resumo Diário',
     html
   });
@@ -97,4 +99,3 @@ cron.schedule('30 8 * * *', () => {
 if (require.main === module) {
   main();
 }
-
