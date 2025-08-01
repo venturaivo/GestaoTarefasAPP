@@ -8,7 +8,12 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-app.use(cors()); // Em produção, considera: cors({ origin: "https://tarefas.v3dsi.com" })
+
+// --- CORS mais seguro (ajusta o origin para o domínio do frontend em produção) ---
+app.use(cors({
+  origin: ["https://tarefas.v3dsi.com", "http://localhost:3000"], // frontend React
+  credentials: true
+}));
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-secreto-123';
@@ -39,16 +44,30 @@ function autenticarToken(req, res, next) {
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
+    // LOG INPUTS
+    console.log("Tentativa de login:", email);
+
+    // Query utilizador
     const [rows] = await pool.query('SELECT * FROM utilizadores WHERE email = ?', [email]);
-    if (rows.length === 0) return res.status(401).json({ error: 'Utilizador não encontrado' });
+    if (rows.length === 0) {
+      console.log("Utilizador não encontrado:", email);
+      return res.status(401).json({ error: 'Utilizador não encontrado' });
+    }
 
     const user = rows[0];
+    // LOG: Vê se a password recebida está ok
+    // console.log("Password enviada:", password, "Password hash na BD:", user.password);
+
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) return res.status(401).json({ error: 'Password incorreta' });
+    if (!passwordMatch) {
+      console.log("Password incorreta para:", email);
+      return res.status(401).json({ error: 'Password incorreta' });
+    }
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, user: { id: user.id, nome: user.nome, email: user.email } });
   } catch (err) {
+    console.error("ERRO DETALHADO LOGIN:", err); // <--- Isto mostra erro real nos logs do Render
     res.status(500).json({ error: 'Erro no login' });
   }
 });
