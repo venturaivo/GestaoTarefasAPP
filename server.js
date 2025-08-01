@@ -9,10 +9,10 @@ const bcrypt = require('bcryptjs');
 
 const app = express();
 
-// --- CORS mais seguro (ajusta o origin para o domínio do frontend em produção) ---
+// --- CORS seguro (apenas frontend autorizado) ---
 app.use(cors({
-  origin: ["https://tarefas.v3dsi.com", "http://localhost:3000"], // frontend React
-  credentials: true
+  origin: ["https://tarefas.v3dsi.com", "http://localhost:3000"],
+  credentials: true, // só precisa disto se usares cookies ou autenticação de sessão
 }));
 app.use(express.json());
 
@@ -55,9 +55,6 @@ app.post('/api/login', async (req, res) => {
     }
 
     const user = rows[0];
-    // LOG: Vê se a password recebida está ok
-    // console.log("Password enviada:", password, "Password hash na BD:", user.password);
-
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       console.log("Password incorreta para:", email);
@@ -67,7 +64,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, user: { id: user.id, nome: user.nome, email: user.email } });
   } catch (err) {
-    console.error("ERRO DETALHADO LOGIN:", err); // <--- Isto mostra erro real nos logs do Render
+    console.error("ERRO DETALHADO LOGIN:", err);
     res.status(500).json({ error: 'Erro no login' });
   }
 });
